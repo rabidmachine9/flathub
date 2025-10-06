@@ -1,0 +1,56 @@
+app-id: org.plugdata.PlugData
+runtime: org.gnome.Platform
+runtime-version: '48'
+sdk: org.gnome.Sdk
+
+command: plugdata
+
+build-extensions:
+  - org.freedesktop.Sdk.Extension.git-lfs
+
+finish-args:
+  - --share=ipc
+  - --socket=x11
+  - --socket=wayland
+  - --socket=pulseaudio
+  - --device=dri
+  - --filesystem=xdg-music
+
+modules:
+  - name: glu
+    buildsystem: autotools
+    sources:
+      - type: archive
+        url: https://mesa.freedesktop.org/archive/glu/glu-9.0.2.tar.xz
+        sha256: 6e7280ff585c6a1d9dfcdf2fca489251634b3377bfc33c29e4002466a38d02d4
+
+  - name: plugdata
+    buildsystem: cmake
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_INSTALL_PREFIX=/app
+      - -DPLUGDATA_BUILD_STANDALONE=ON
+      - -DPLUGDATA_BUILD_ALL=OFF
+      - -DPLUGDATA_BUILD_VST3=OFF
+      - -DPLUGDATA_BUILD_LV2=OFF
+      - -DPLUGDATA_BUILD_CLAP=OFF
+      - -DENABLE_FFMPEG=OFF
+      - -DENABLE_GEM=OFF
+      - -DQUICK_BUILD=ON
+      - -DFLATPAK_STANDALONE=ON
+      - -DFLATPAK_PLUGIN=OFF
+
+    sources:
+      - type: git
+        url: https://github.com/rabidmachine9/plugdata.git
+        branch: develop
+
+    post-extract:
+      - git submodule update --init --recursive
+      - git lfs pull
+      - sed -i 's/global_gensym(dirbuf)/global_gensym((char*)dirbuf)/g' Libraries/pd-lua/pdlua.c
+
+    post-install:
+      - install -Dm644 Resources/Flatpak/org.plugdata.PlugData.desktop /app/share/applications/org.plugdata.PlugData.desktop
+      - install -Dm644 Resources/Flatpak/org.plugdata.PlugData.png /app/share/icons/hicolor/scalable/apps/org.plugdata.PlugData.png
+      - install -Dm644 Resources/Flatpak/org.plugdata.PlugData.metainfo.xml /app/share/metainfo/org.plugdata.PlugData.metainfo.xml
